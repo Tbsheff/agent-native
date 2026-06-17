@@ -160,6 +160,7 @@ import type {
 import {
   planBundleQueryKey,
   usePlan,
+  useLocalMode,
   usePlanAccessStatus,
   usePlans,
   usePlanVersion,
@@ -2461,9 +2462,13 @@ export function PlansPage() {
   // comments before the server write commits (Issue 4a).
   const commentMutationPendingRef = useRef(false);
   const { session, isLoading: sessionLoading } = useSession();
+  // Single-user local mode: the server resolves every unauthenticated request to
+  // the local owner, so the UI drops the sign-in gates on commenting/creating.
+  const localModeQuery = useLocalMode();
+  const localMode = localModeQuery.data?.localMode ?? false;
   const selectedId = params.id;
   const plansQuery = usePlans({
-    enabled: Boolean(session && !selectedId),
+    enabled: Boolean((session || localMode) && !selectedId),
   });
   const plans = plansQuery.data ?? [];
   // Identity for collaborative cursor labels. Only a signed-in user enables
@@ -2490,12 +2495,12 @@ export function PlansPage() {
   }, []);
   const requestCreatePlan = useCallback(() => {
     if (sessionLoading) return;
-    if (!session) {
+    if (!session && !localMode) {
       openSignIn("/plans?create=1");
       return;
     }
     setCreateOpen(true);
-  }, [openSignIn, session, sessionLoading]);
+  }, [localMode, openSignIn, session, sessionLoading]);
   // Refetch once a session appears so account-scoped plans show up immediately.
   const wasSignedInRef = useRef(false);
   useEffect(() => {
@@ -2509,7 +2514,7 @@ export function PlansPage() {
   useEffect(() => {
     const search = new URLSearchParams(location.search);
     if (search.get("create") !== "1" || sessionLoading) return;
-    if (!session) {
+    if (!session && !localMode) {
       openSignIn("/plans?create=1");
       return;
     }
@@ -2528,6 +2533,7 @@ export function PlansPage() {
     location.hash,
     location.pathname,
     location.search,
+    localMode,
     navigate,
     openSignIn,
     session,
@@ -2671,7 +2677,7 @@ export function PlansPage() {
   const canReportPlan =
     Boolean(bundle) && effectivePlanVisibility === "public" && !canManagePlan;
   const canResolveCommentThreads = Boolean(
-    bundle && (session || canEditPlanContent),
+    bundle && (session || localMode || canEditPlanContent),
   );
   const defaultInlineCommentDraft = useMemo<CommentDraft>(() => {
     const ownerEmail = normalizeCommentEmail(bundle?.access?.ownerEmail);
@@ -4610,7 +4616,7 @@ export function PlansPage() {
               plans={plans}
               isLoading={sessionLoading || plansQuery.isLoading}
               onCreate={requestCreatePlan}
-              canCreate={Boolean(session)}
+              canCreate={Boolean(session) || localMode}
               onArchive={handleArchivePlan}
               onSignIn={() => openSignIn()}
             />
@@ -5247,7 +5253,7 @@ export function PlansPage() {
                   ) : (
                     pendingCommentPin
                   )}
-                  {!session ? (
+                  {!session && !localMode ? (
                     <GuestCommentCta
                       position={inlineCommentPosition}
                       onSignIn={() =>
@@ -5337,7 +5343,7 @@ export function PlansPage() {
       <CreatePlanDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
-        canCreate={Boolean(session)}
+        canCreate={Boolean(session) || localMode}
         onRequireSignIn={() => openSignIn("/plans?create=1")}
       />
 

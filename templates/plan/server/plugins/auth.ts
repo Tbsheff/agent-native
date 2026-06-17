@@ -21,6 +21,9 @@ const LOCAL_MODE_ACTION_PATHS: string[] = isLocalPlanRuntime()
       "/_agent-native/actions/get-local-plan-folder",
       "/_agent-native/actions/navigate",
       "/_agent-native/actions/view-screen",
+      "/_agent-native/actions/reply-to-plan-comment",
+      "/_agent-native/actions/resolve-plan-comment",
+      "/_agent-native/actions/delete-plan-comment",
     ]
   : [];
 

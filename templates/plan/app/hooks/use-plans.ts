@@ -265,6 +265,18 @@ export function usePlanAccessStatus(planId?: string, enabled = true) {
   );
 }
 
+export type LocalModeResponse = {
+  localMode: boolean;
+};
+
+export function useLocalMode() {
+  return useActionQuery<LocalModeResponse>(
+    "get-local-mode",
+    {},
+    { retry: false },
+  );
+}
+
 export type RequestPlanAccessResult = {
   ok: true;
   alreadyHasAccess: boolean;

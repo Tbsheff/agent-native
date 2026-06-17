@@ -132,27 +132,31 @@ function isSecureRequest(event: H3Event): boolean {
  * Called by the core auth / core-routes / agent-chat plugins ONLY when there is
  * no authenticated user. Resolution order:
  *
- *   1. Anonymous public-plan viewer — when the request targets a public plan,
- *      mint/return a stable `public-<uuid>@agent-native.local` identity so the
- *      viewer can read (but, per the comment gate, not comment) without an
- *      account. Honored in every environment, hosted and local. Read-only.
- *   2. Local single-user identity — in local mode only (`isLocalPlanRuntime()`),
- *      fall back to the configured local owner so the no-login local workflow
- *      can create, read, list, and edit its own plans without signing in. This
- *      MUST NOT fire on a hosted/production deploy; `isLocalPlanRuntime()`
- *      enforces the production refusal.
+ *   1. Local single-user identity — in local mode (`isLocalPlanRuntime()`),
+ *      every unauthenticated request is the one local user, so resolve the
+ *      configured local owner for ALL paths (read, list, comment, public-recap
+ *      review). Without this, viewing or commenting on a public recap resolves
+ *      to an anonymous public-viewer identity that the comment/write gates
+ *      reject, so no-login commenting silently fails on the common org/public
+ *      recap. `isLocalPlanRuntime()` is false on any hosted/production deploy,
+ *      so this branch never fires there.
+ *   2. Anonymous public-plan viewer (hosted) — when the request targets a public
+ *      plan, mint/return a stable `public-<uuid>@agent-native.local` identity so
+ *      the viewer can read (but, per the comment gate, not comment) without an
+ *      account. Read-only.
  *
  * Returns `null` when none applies, so the caller rejects exactly as before.
  */
 export async function resolvePlanAnonymousOwner(
   event: H3Event,
 ): Promise<string | null> {
+  if (isLocalPlanRuntime()) return getLocalPlanOwnerEmail();
   if (allowsAnonymousPlanAccessMetadata(event)) {
     return resolveAnonymousPlanViewerCookie(event);
   }
   const publicViewer = await resolvePublicPlanViewerOwner(event);
   if (publicViewer) return publicViewer;
-  return isLocalPlanRuntime() ? getLocalPlanOwnerEmail() : null;
+  return null;
 }
 
 export async function resolvePublicPlanViewerOwner(
