@@ -15,7 +15,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "postinstall": "pnpm --filter @agent-native/shared-app-config --filter @agent-native/core --filter @agent-native/code-agents-ui --filter @agent-native/migrate --filter @agent-native/pinpoint --filter @agent-native/scheduling --filter @agent-native/embedding --filter @agent-native/dispatch run build",
+    "postinstall": "pnpm --filter @agent-native/shared-app-config --filter @agent-native/core run build",
     "setup": "pnpm install",
     "build": "pnpm -r build",
     "dev": "node scripts/dev-lazy.ts",
@@ -69,6 +69,7 @@
     "dev:eager:desktop": "node scripts/dev-all.ts --desktop",
     "dev:all": "node scripts/dev-all.ts",
     "dev:all:desktop": "node scripts/dev-all.ts --desktop",
+    "dev:plan": "node scripts/dev-all.ts --apps plan --no-docs --no-frame",
     "dev:docs": "pnpm --filter @agent-native/docs dev",
     "dev:electron": "node scripts/dev-electron.ts",
     "dev:electron:lazy": "node scripts/dev-lazy.ts --electron",
