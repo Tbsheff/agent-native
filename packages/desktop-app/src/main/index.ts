@@ -6,6 +6,7 @@ import {
   globalShortcut,
   ipcMain,
   Menu,
+  nativeTheme,
   Notification,
   session,
   shell,
@@ -8499,6 +8500,12 @@ function configurePermissionHandlers(
 }
 
 app.whenReady().then(() => {
+  // The shell chrome stylesheet is dark-only, so pin the OS-level color scheme
+  // to dark for every web content (including app webviews). This keeps each
+  // embedded app's `system` theme from rendering light against dark chrome —
+  // one consistent appearance across shell and apps.
+  nativeTheme.themeSource = "dark";
+
   // Process any deep link that arrived before the app was ready
   if (pendingDeepLink) {
     handleDeepLink(pendingDeepLink);
