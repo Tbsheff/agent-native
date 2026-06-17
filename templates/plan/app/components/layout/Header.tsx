@@ -34,7 +34,7 @@ export function Header({ onOpenMobileSidebar }: HeaderProps) {
           type="button"
           onClick={onOpenMobileSidebar}
           aria-label="Open navigation"
-          className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent md:hidden"
+          className="flex size-10 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-[transform,color,background-color] duration-150 hover:text-foreground hover:bg-accent active:scale-[0.96] md:hidden"
         >
           <IconMenu2 className="h-4 w-4" />
         </button>

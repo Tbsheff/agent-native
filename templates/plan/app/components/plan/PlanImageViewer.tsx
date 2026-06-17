@@ -63,7 +63,7 @@ export type PlanImageViewerProps = {
 };
 
 const ACTION_BTN_CLASS =
-  "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground focus-visible:outline-none";
+  "inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-muted-foreground transition-[color,background-color,transform] duration-150 active:scale-[0.96] hover:bg-accent hover:text-foreground focus-visible:bg-accent focus-visible:text-foreground focus-visible:outline-none";
 
 export function PlanImageViewer({
   src,
@@ -113,7 +113,10 @@ export function PlanImageViewer({
         alt={alt}
         loading={loading}
         draggable={false}
-        className={imgClassName}
+        className={cn(
+          "outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10",
+          imgClassName,
+        )}
         onDoubleClick={() => setLightboxOpen(true)}
       />
 
@@ -244,7 +247,7 @@ function PlanImageLightbox({
               draggable={false}
               onClick={() => setZoomed((value) => !value)}
               className={cn(
-                "rounded-lg shadow-2xl transition-transform",
+                "rounded-lg shadow-2xl transition-transform outline outline-1 -outline-offset-1 outline-white/10",
                 zoomed
                   ? "max-w-none cursor-zoom-out"
                   : "max-h-[90vh] max-w-[92vw] cursor-zoom-in object-contain",
@@ -255,7 +258,7 @@ function PlanImageLightbox({
           <div className="fixed bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-white/15 bg-black/70 px-2 py-1.5 text-white shadow-xl backdrop-blur">
             <button
               type="button"
-              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/15 disabled:cursor-default disabled:opacity-40"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/90 transition-[color,background-color,transform] duration-150 active:scale-[0.96] hover:bg-white/15 disabled:cursor-default disabled:opacity-40"
               aria-label="Fit to screen"
               disabled={!zoomed}
               onClick={() => setZoomed(false)}
@@ -267,7 +270,7 @@ function PlanImageLightbox({
             </span>
             <button
               type="button"
-              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/15 disabled:cursor-default disabled:opacity-40"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/90 transition-[color,background-color,transform] duration-150 active:scale-[0.96] hover:bg-white/15 disabled:cursor-default disabled:opacity-40"
               aria-label="Actual size"
               disabled={zoomed}
               onClick={() => setZoomed(true)}
@@ -277,7 +280,7 @@ function PlanImageLightbox({
             <span className="mx-1 h-5 w-px bg-white/20" aria-hidden />
             <button
               type="button"
-              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/15"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/90 transition-[color,background-color,transform] duration-150 active:scale-[0.96] hover:bg-white/15"
               aria-label="Download image"
               onClick={() => void downloadImage(src, alt)}
             >
@@ -286,7 +289,7 @@ function PlanImageLightbox({
             <span className="mx-1 h-5 w-px bg-white/20" aria-hidden />
             <button
               type="button"
-              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/90 transition-colors hover:bg-white/15"
+              className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-white/90 transition-[color,background-color,transform] duration-150 active:scale-[0.96] hover:bg-white/15"
               aria-label="Close image preview"
               onClick={() => handleOpenChange(false)}
             >

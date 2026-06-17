@@ -15,7 +15,6 @@ import {
   appPath,
   useSession,
 } from "@agent-native/core/client";
-import { OrgSwitcher } from "@agent-native/core/client/org";
 import { APP_TITLE } from "@/lib/app-config";
 import { usePlans, useLocalMode } from "@/hooks/use-plans";
 import { Badge } from "@/components/ui/badge";
@@ -101,7 +100,7 @@ function PlansSidebarSection({ collapsed }: { collapsed: boolean }) {
               type="button"
               onClick={requestCreatePlan}
               disabled={sessionLoading}
-              className="flex size-6 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/65 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+              className="flex size-6 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/65 transition-[color,background-color,transform] duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50"
               aria-label={
                 session || localMode ? "New plan" : "Sign in to create a plan"
               }
@@ -170,12 +169,12 @@ function PlansSidebarSection({ collapsed }: { collapsed: boolean }) {
                 {plan.openCommentCount > 0 ? (
                   <Badge
                     variant="secondary"
-                    className="h-5 shrink-0 rounded-full px-1.5 text-[10px]"
+                    className="h-5 shrink-0 rounded-full px-1.5 text-[10px] tabular-nums"
                   >
                     {plan.openCommentCount}
                   </Badge>
                 ) : (
-                  <span className="shrink-0 text-[11px] text-sidebar-foreground/45">
+                  <span className="shrink-0 text-[11px] tabular-nums text-sidebar-foreground/45">
                     {formatPlanAge(plan.updatedAt)}
                   </span>
                 )}
@@ -291,7 +290,6 @@ export function Sidebar({
           <div className="space-y-2 border-t border-border px-3 py-2">
             <DevDatabaseLink />
             <FeedbackButton />
-            <OrgSwitcher />
           </div>
         </>
       )}

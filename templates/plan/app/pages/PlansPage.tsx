@@ -6450,10 +6450,10 @@ function EmptyPlan({
         <div className="mx-auto flex size-11 items-center justify-center rounded-xl border border-border bg-muted/30">
           <IconClipboardText className="size-5 text-muted-foreground" />
         </div>
-        <h2 className="mt-4 text-xl font-semibold tracking-tight">
+        <h2 className="mt-4 text-balance text-xl font-semibold tracking-tight">
           Start with a visual plan
         </h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        <p className="mt-2 text-pretty text-sm leading-6 text-muted-foreground">
           Create a polished plan with editable document blocks, diagrams,
           wireframes, and comments before implementation starts.
         </p>
@@ -6568,10 +6568,10 @@ function PlansOverview({
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="truncate text-xl font-semibold tracking-tight">
+              <h1 className="truncate text-balance text-xl font-semibold tracking-tight">
                 Plans
               </h1>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground tabular-nums">
                 {totalVisible} document{totalVisible === 1 ? "" : "s"}
               </p>
             </div>
@@ -6649,7 +6649,10 @@ function PlansOverview({
                         </p>
                       </div>
                       {plan.openCommentCount > 0 && (
-                        <Badge variant="secondary" className="shrink-0">
+                        <Badge
+                          variant="secondary"
+                          className="shrink-0 tabular-nums"
+                        >
                           {plan.openCommentCount}
                         </Badge>
                       )}
@@ -6671,7 +6674,7 @@ function PlansOverview({
                       <DropdownMenuTrigger asChild>
                         <button
                           type="button"
-                          className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          className="relative flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           aria-label="Plan actions"
                         >
                           <IconDots className="size-4" />
@@ -7772,7 +7775,7 @@ function InlineCommentPopover({
   return (
     <div
       data-plan-interactive
-      className="absolute z-30 rounded-xl border border-border/80 bg-background/96 p-2 shadow-2xl backdrop-blur-xl"
+      className="absolute z-30 origin-top rounded-xl border border-border/80 bg-background/96 p-2 shadow-2xl backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150"
       style={{ left: position.left, top: position.top, width: position.width }}
     >
       <div className="mb-2 flex items-center justify-between gap-2 px-1">
@@ -7845,7 +7848,7 @@ function GuestCommentCta({
   return (
     <div
       data-plan-interactive
-      className="absolute z-30 rounded-xl border border-border/80 bg-background/96 p-4 shadow-2xl backdrop-blur-xl"
+      className="absolute z-30 origin-top rounded-xl border border-border/80 bg-background/96 p-4 shadow-2xl backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150"
       style={{ left: position.left, top: position.top, width: position.width }}
     >
       <div className="mb-3 flex items-center justify-between gap-2">
@@ -8111,7 +8114,7 @@ function AnnotationPopover({
     <div
       ref={popoverRef}
       data-plan-interactive
-      className="pointer-events-auto absolute z-30 flex max-h-[min(520px,calc(100%-24px))] flex-col overflow-hidden rounded-xl border border-border/80 bg-background/96 shadow-2xl backdrop-blur-xl"
+      className="pointer-events-auto absolute z-30 flex max-h-[min(520px,calc(100%-24px))] origin-top flex-col overflow-hidden rounded-xl border border-border/80 bg-background/96 shadow-2xl backdrop-blur-xl animate-in fade-in-0 zoom-in-95 duration-150"
       style={{ left: position.left, top: position.top, width: position.width }}
     >
       <div className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border/70 px-4">
@@ -8119,7 +8122,10 @@ function AnnotationPopover({
           <IconMessageCircle className="size-4 text-muted-foreground" />
           <h2 className="truncate text-sm font-semibold">Comment</h2>
           {annotation.commentCount > 1 && (
-            <Badge variant="secondary" className="h-5 rounded-md px-1.5">
+            <Badge
+              variant="secondary"
+              className="h-5 rounded-md px-1.5 tabular-nums"
+            >
               {annotation.commentCount}
             </Badge>
           )}
