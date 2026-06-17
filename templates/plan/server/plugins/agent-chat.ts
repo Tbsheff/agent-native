@@ -106,18 +106,17 @@ registerEvent({
 });
 
 /**
- * Curated connector catalog for hosted multi-tenant deployments.
+ * Curated connector catalog for external MCP callers.
  *
- * Active when AGENT_NATIVE_CONNECTOR_CATALOG=1 is set (hosted plan.agent-native.com).
- * External coding agents (Claude Code, Codex, Cursor, etc.) connecting via MCP
- * see only these tools plus the builtin cross-app tools (list_apps, open_app,
- * ask_app, create_embed_session). Tools outside this list are not callable.
+ * Applied by default to every MCP caller (core no longer gates this behind an
+ * env flag). External coding agents (Claude Code, Codex, Cursor, etc.) see only
+ * these tools plus the builtin cross-app tools (list_apps, open_app, ask_app,
+ * ask_app_status, create_embed_session). Tools outside this list are not callable.
  *
- * Callers who need the full surface (db-exec, seed-*, extension tools, etc.)
- * can opt up with `agent-native connect --full-catalog`.
+ * Callers who need the full surface (db-exec, extension tools, etc.) can opt up
+ * with `agent-native connect --full-catalog`.
  *
  * EXCLUDED intentionally:
- *   - seed-kitchen-sink, seed-vertical-tabs  (destructive demo scripts)
  *   - get-local-plan-folder                  (filesystem path, not useful remotely)
  *   - context-manifest-get/pin/evict/restore/report  (context-xray internals)
  *   - visualize-plan                         (internal alias, superseded)
