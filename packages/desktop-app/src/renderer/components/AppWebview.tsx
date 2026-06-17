@@ -82,10 +82,14 @@ function resolveUrl(app: AppDefinition, appConfig?: AppConfig): string {
   if (appConfig?.mode === "dev") {
     const template = getTemplate(appConfig.id);
     if (template) {
-      const customTemplateDevUrl = !isDefaultDesktopTemplateDevTarget(appConfig)
-        ? (appConfig.devUrl?.trim() ??
-          (appConfig.devPort ? `http://localhost:${appConfig.devPort}` : ""))
-        : "";
+      // Always hand the frame the explicit local dev target. The default-target
+      // path left this empty and relied on the template gateway to proxy
+      // localhost, but this fork's lazy gateway is broken (NitroViteError) — so
+      // without the explicit devUrl the frame falls back to the HOSTED app
+      // (remote auth + remote DB) instead of the local dev server.
+      const customTemplateDevUrl =
+        appConfig.devUrl?.trim() ??
+        (appConfig.devPort ? `http://localhost:${appConfig.devPort}` : "");
 
       // First-party templates must load through the frame so the Chat | CLI |
       // Workspace panel lives outside the hot-reloaded app iframe. Custom
