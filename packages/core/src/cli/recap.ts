@@ -1220,6 +1220,223 @@ export function countDiffLines(diffText: string): number {
   return count;
 }
 
+/** Map a file extension to the `language` chip the diff block renders. */
+const RECAP_LANGUAGE_BY_EXT: Record<string, string> = {
+  ts: "ts",
+  tsx: "tsx",
+  js: "js",
+  jsx: "jsx",
+  mjs: "js",
+  cjs: "js",
+  json: "json",
+  md: "md",
+  mdx: "mdx",
+  css: "css",
+  scss: "scss",
+  html: "html",
+  yml: "yaml",
+  yaml: "yaml",
+  sh: "bash",
+  bash: "bash",
+  py: "python",
+  rb: "ruby",
+  go: "go",
+  rs: "rust",
+  java: "java",
+  kt: "kotlin",
+  swift: "swift",
+  sql: "sql",
+  toml: "toml",
+  prisma: "prisma",
+  graphql: "graphql",
+  gql: "graphql",
+};
+
+function recapLanguageFromPath(filename: string): string | undefined {
+  const base = filename.slice(filename.lastIndexOf("/") + 1);
+  const dot = base.lastIndexOf(".");
+  if (dot <= 0) return undefined;
+  return RECAP_LANGUAGE_BY_EXT[base.slice(dot + 1).toLowerCase()];
+}
+
+/** Per-file reconstruction produced by `unifiedDiffToBeforeAfter`. */
+export interface RecapDiffBlock {
+  filename: string;
+  language?: string;
+  before: string;
+  after: string;
+  change: "added" | "modified" | "removed" | "renamed";
+  changedLines: { added: number[]; removed: number[] };
+}
+
+/**
+ * Reconstruct before/after text from a unified diff so the recap agent drops
+ * exact source into `diff` blocks instead of hand-rebuilding hunks (the #1
+ * source of corrupted recaps — a dropped context line or mis-applied hunk
+ * silently breaks the rendered split diff). Pure (string in → array out) so the
+ * reconstruction is unit-testable.
+ *
+ * For each `diff --git a/… b/…` segment it walks every `@@ -a,b +c,d @@` hunk,
+ * sending ' ' lines to both sides, '-' to before only, '+' to after only, and
+ * records 1-based before/after line numbers of the removed/added lines. The
+ * `change` flag comes from the segment's mode/rename headers. A
+ * `\ No newline at end of file` marker drops the trailing newline from the side
+ * it follows; otherwise each emitted line keeps its newline so the text is exact.
+ */
+export function unifiedDiffToBeforeAfter(patch: string): RecapDiffBlock[] {
+  const HEADER = /^diff --git /m;
+  const firstHeader = patch.search(HEADER);
+  if (firstHeader < 0) return [];
+
+  const body = patch.slice(firstHeader);
+  const segments: string[] = [];
+  let remaining = body;
+  while (remaining.length > 0) {
+    const next = remaining.slice(1).search(HEADER);
+    if (next < 0) {
+      segments.push(remaining);
+      break;
+    }
+    segments.push(remaining.slice(0, next + 1));
+    remaining = remaining.slice(next + 1);
+  }
+
+  const out: RecapDiffBlock[] = [];
+  for (const segment of segments) {
+    const block = reconstructDiffSegment(segment);
+    if (block) out.push(block);
+  }
+  return out;
+}
+
+function reconstructDiffSegment(segment: string): RecapDiffBlock | null {
+  const lines = segment.split("\n");
+  const headerMatch = lines[0].match(/^diff --git a\/(.+?) b\/(.+)$/);
+  if (!headerMatch) return null;
+  const oldPath = headerMatch[1];
+  const newPath = headerMatch[2];
+
+  let isNewFile = false;
+  let isDeletedFile = false;
+  let isRename = false;
+  let i = 1;
+  for (; i < lines.length; i += 1) {
+    const line = lines[i];
+    if (line.startsWith("@@")) break;
+    if (line.startsWith("new file mode")) isNewFile = true;
+    else if (line.startsWith("deleted file mode")) isDeletedFile = true;
+    else if (line.startsWith("rename from") || line.startsWith("rename to"))
+      isRename = true;
+  }
+
+  const filename = isDeletedFile ? oldPath : newPath;
+  const change: RecapDiffBlock["change"] = isNewFile
+    ? "added"
+    : isDeletedFile
+      ? "removed"
+      : isRename
+        ? "renamed"
+        : "modified";
+
+  const beforeLines: string[] = [];
+  const afterLines: string[] = [];
+  const addedLineNos: number[] = [];
+  const removedLineNos: number[] = [];
+
+  let beforeNo = 0;
+  let afterNo = 0;
+  let beforeNoNewline = false;
+  let afterNoNewline = false;
+
+  for (; i < lines.length; i += 1) {
+    const line = lines[i];
+    const hunk = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunk) {
+      beforeNo = Number.parseInt(hunk[1], 10);
+      afterNo = Number.parseInt(hunk[2], 10);
+      continue;
+    }
+    // The trailing-newline markers are resolved by applyNoNewlineMarkers below.
+    if (line.startsWith("\\ No newline at end of file")) continue;
+    if (beforeNo === 0 && afterNo === 0) continue;
+    const marker = line[0];
+    const text = line.slice(1);
+    if (marker === " ") {
+      beforeLines.push(text);
+      afterLines.push(text);
+      beforeNo += 1;
+      afterNo += 1;
+    } else if (marker === "-") {
+      beforeLines.push(text);
+      removedLineNos.push(beforeNo);
+      beforeNo += 1;
+    } else if (marker === "+") {
+      afterLines.push(text);
+      addedLineNos.push(afterNo);
+      afterNo += 1;
+    }
+  }
+
+  applyNoNewlineMarkers(
+    lines,
+    () => {
+      beforeNoNewline = true;
+    },
+    () => {
+      afterNoNewline = true;
+    },
+  );
+
+  const before = joinDiffSide(beforeLines, beforeNoNewline);
+  const after = joinDiffSide(afterLines, afterNoNewline);
+
+  return {
+    filename,
+    language: recapLanguageFromPath(filename),
+    before,
+    after,
+    change,
+    changedLines: { added: addedLineNos, removed: removedLineNos },
+  };
+}
+
+/**
+ * A unified hunk ends a side's file content with a trailing newline unless the
+ * source had none, signalled by `\ No newline at end of file` immediately after
+ * the final content line on that side. Join lines with `\n` and append a
+ * trailing `\n` only when the side did end with a newline.
+ */
+function joinDiffSide(sideLines: string[], noTrailingNewline: boolean): string {
+  if (sideLines.length === 0) return "";
+  const joined = sideLines.join("\n");
+  return noTrailingNewline ? joined : `${joined}\n`;
+}
+
+/**
+ * Walk the segment lines and, for each `\ No newline at end of file` marker,
+ * invoke the callback for the side(s) the immediately preceding content line
+ * belongs to: a ' ' line touches both sides, '-' the before side, '+' the after.
+ */
+function applyNoNewlineMarkers(
+  lines: string[],
+  onBefore: () => void,
+  onAfter: () => void,
+): void {
+  for (let i = 0; i < lines.length; i += 1) {
+    if (!lines[i].startsWith("\\ No newline at end of file")) continue;
+    const prev = i > 0 ? lines[i - 1] : "";
+    const marker = prev[0];
+    if (marker === " ") {
+      onBefore();
+      onAfter();
+    } else if (marker === "-") {
+      onBefore();
+    } else if (marker === "+") {
+      onAfter();
+    }
+  }
+}
+
 /**
  * Result from `gitDiffRaw`. `failed` is true when git itself exited non-zero
  * AND produced empty stdout — which indicates a broken ref (missing object,
@@ -1336,6 +1553,22 @@ function runCollectDiff(args: Record<string, string | boolean>): void {
     );
   }
   process.stdout.write(`${JSON.stringify({ bytes, changed, huge, tiny })}\n`);
+}
+
+/**
+ * `recap diff-to-blocks` — parse the collected unified diff into ready-to-author
+ * before/after pairs plus a per-file change manifest, so the recap agent drops
+ * exact source into `diff` blocks instead of hand-reconstructing hunks. Reads
+ * the diff from `--in <path>` (default `recap.diff`, what `collect-diff` writes)
+ * and prints the array as JSON. `--file <path>` filters to a single file.
+ */
+function runDiffToBlocks(args: Record<string, string | boolean>): void {
+  const inPath = optionalArg(args, "in") ?? "recap.diff";
+  const patch = fs.readFileSync(path.resolve(inPath), "utf8");
+  const blocks = unifiedDiffToBeforeAfter(patch);
+  const only = optionalArg(args, "file");
+  const result = only ? blocks.filter((b) => b.filename === only) : blocks;
+  process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -3972,6 +4205,12 @@ Usage:
   npx @agent-native/core@latest recap setup [--repo owner/name] [--agent claude|codex] [--app-url <url>] [--skip-secrets] [--dry-run] [--force]
   npx @agent-native/core@latest recap doctor [--repo owner/name] [--agent claude|codex] [--app-url <url>]
   npx @agent-native/core@latest recap collect-diff --base <baseSha> --head <headSha> [--out recap.diff] [--stat recap.stat]
+  npx @agent-native/core@latest recap diff-to-blocks [--in recap.diff] [--file <path>]
+    Parse the unified diff into ready-to-author diff blocks: an array of
+    { filename, language, before, after, change, changedLines } so the agent
+    drops exact before/after source and per-file change flags into file-tree and
+    diff blocks instead of reconstructing hunks by hand. --file filters to one
+    file. Prints JSON to stdout.
   npx @agent-native/core@latest recap block-reference [--app-url <url>] [--out recap-blocks.md]
   npx @agent-native/core@latest recap scan --diff <path> [--mode off|high-confidence|strict]
   npx @agent-native/core@latest recap build-prompt --pr <n> [--repo owner/name] [--head <sha>] [--app-url <url>] [--diff <path>] [--stat <path>] [--block-reference recap-blocks.md] [--prev-plan-id <id>] [--huge] [--local-files] [--local-dir <folder>] [--skill-source auto|latest|repo] [--out <path>]
@@ -4040,6 +4279,9 @@ export async function runRecap(argv: string[]): Promise<void> {
       return;
     case "collect-diff":
       runCollectDiff(args);
+      return;
+    case "diff-to-blocks":
+      runDiffToBlocks(args);
       return;
     case "block-reference":
       await runBlockReference(args);

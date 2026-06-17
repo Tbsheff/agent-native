@@ -43,6 +43,7 @@ import {
   summarizeLocalAgentFailure,
   summarizeAgentResult,
   truncateDiffAtLineBoundary,
+  unifiedDiffToBeforeAfter,
   waitForPublicRecapImage,
   withRecapScreenshotParams,
   writePrVisualRecapReusableCallerWorkflow,
@@ -370,6 +371,151 @@ describe("countDiffLines", () => {
     ].join("\n");
     // 4 real diff lines, 4 header lines that must be excluded.
     expect(countDiffLines(diff)).toBe(4);
+  });
+});
+
+describe("unifiedDiffToBeforeAfter", () => {
+  it("round-trips a single-hunk modification exactly", () => {
+    const diff = [
+      "diff --git a/src/add.ts b/src/add.ts",
+      "index 1111111..2222222 100644",
+      "--- a/src/add.ts",
+      "+++ b/src/add.ts",
+      "@@ -1,3 +1,3 @@",
+      " export function add(a, b) {",
+      "-  return a - b;",
+      "+  return a + b;",
+      " }",
+      "",
+    ].join("\n");
+
+    const [block] = unifiedDiffToBeforeAfter(diff);
+    expect(block.filename).toBe("src/add.ts");
+    expect(block.language).toBe("ts");
+    expect(block.change).toBe("modified");
+    expect(block.before).toBe(
+      "export function add(a, b) {\n  return a - b;\n}\n",
+    );
+    expect(block.after).toBe(
+      "export function add(a, b) {\n  return a + b;\n}\n",
+    );
+    expect(block.changedLines).toEqual({ added: [2], removed: [2] });
+  });
+
+  it("reconstructs a multi-hunk file from both hunks", () => {
+    const diff = [
+      "diff --git a/src/multi.ts b/src/multi.ts",
+      "--- a/src/multi.ts",
+      "+++ b/src/multi.ts",
+      "@@ -1,3 +1,3 @@",
+      " const a = 1;",
+      "-const b = 2;",
+      "+const b = 20;",
+      " const c = 3;",
+      "@@ -8,3 +8,3 @@",
+      " const x = 10;",
+      "-const y = 11;",
+      "+const y = 110;",
+      " const z = 12;",
+      "",
+    ].join("\n");
+
+    const [block] = unifiedDiffToBeforeAfter(diff);
+    expect(block.before).toBe(
+      "const a = 1;\nconst b = 2;\nconst c = 3;\nconst x = 10;\nconst y = 11;\nconst z = 12;\n",
+    );
+    expect(block.after).toBe(
+      "const a = 1;\nconst b = 20;\nconst c = 3;\nconst x = 10;\nconst y = 110;\nconst z = 12;\n",
+    );
+    // Removed line nos are before-side; added line nos are after-side.
+    expect(block.changedLines).toEqual({ added: [2, 9], removed: [2, 9] });
+  });
+
+  it("yields an empty before for a new file", () => {
+    const diff = [
+      "diff --git a/src/new.ts b/src/new.ts",
+      "new file mode 100644",
+      "index 0000000..3333333",
+      "--- /dev/null",
+      "+++ b/src/new.ts",
+      "@@ -0,0 +1,2 @@",
+      "+export const created = true;",
+      "+export const value = 1;",
+      "",
+    ].join("\n");
+
+    const [block] = unifiedDiffToBeforeAfter(diff);
+    expect(block.change).toBe("added");
+    expect(block.before).toBe("");
+    expect(block.after).toBe(
+      "export const created = true;\nexport const value = 1;\n",
+    );
+    expect(block.changedLines).toEqual({ added: [1, 2], removed: [] });
+  });
+
+  it("yields an empty after for a deleted file", () => {
+    const diff = [
+      "diff --git a/src/gone.ts b/src/gone.ts",
+      "deleted file mode 100644",
+      "index 4444444..0000000",
+      "--- a/src/gone.ts",
+      "+++ /dev/null",
+      "@@ -1,2 +0,0 @@",
+      "-export const removed = true;",
+      "-export const value = 2;",
+      "",
+    ].join("\n");
+
+    const [block] = unifiedDiffToBeforeAfter(diff);
+    expect(block.filename).toBe("src/gone.ts");
+    expect(block.change).toBe("removed");
+    expect(block.before).toBe(
+      "export const removed = true;\nexport const value = 2;\n",
+    );
+    expect(block.after).toBe("");
+    expect(block.changedLines).toEqual({ added: [], removed: [1, 2] });
+  });
+
+  it("flags a rename and keeps the new path as the filename", () => {
+    const diff = [
+      "diff --git a/src/old-name.ts b/src/new-name.ts",
+      "similarity index 92%",
+      "rename from src/old-name.ts",
+      "rename to src/new-name.ts",
+      "--- a/src/old-name.ts",
+      "+++ b/src/new-name.ts",
+      "@@ -1,2 +1,2 @@",
+      " const stable = 1;",
+      "-const renamed = 2;",
+      "+const renamed = 3;",
+      "",
+    ].join("\n");
+
+    const [block] = unifiedDiffToBeforeAfter(diff);
+    expect(block.change).toBe("renamed");
+    expect(block.filename).toBe("src/new-name.ts");
+    expect(block.before).toBe("const stable = 1;\nconst renamed = 2;\n");
+    expect(block.after).toBe("const stable = 1;\nconst renamed = 3;\n");
+  });
+
+  it("drops the trailing newline when the source has none", () => {
+    const diff = [
+      "diff --git a/src/eof.ts b/src/eof.ts",
+      "--- a/src/eof.ts",
+      "+++ b/src/eof.ts",
+      "@@ -1,2 +1,2 @@",
+      " const keep = 1;",
+      "-const last = 2;",
+      "\\ No newline at end of file",
+      "+const last = 3;",
+      "\\ No newline at end of file",
+      "",
+    ].join("\n");
+
+    const [block] = unifiedDiffToBeforeAfter(diff);
+    // No trailing "\n" on either side because the source had no final newline.
+    expect(block.before).toBe("const keep = 1;\nconst last = 2;");
+    expect(block.after).toBe("const keep = 1;\nconst last = 3;");
   });
 });
 

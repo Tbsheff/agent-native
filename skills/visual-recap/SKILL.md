@@ -29,9 +29,9 @@ exception to the hosted publish rule below.
 In local-files mode:
 
 - Read the diff/stat/source context from local files and shell commands only.
-  The existing `npx @agent-native/core@latest recap collect-diff`, `scan`, and
-  `build-prompt --local-files` helpers are safe to use because they operate on
-  local files and do not write to the Plan database.
+  The existing `npx @agent-native/core@latest recap collect-diff`,
+  `diff-to-blocks`, `scan`, and `build-prompt --local-files` helpers are safe to
+  use because they operate on local files and do not write to the Plan database.
 - Write the recap as a local MDX folder under `plans/<slug>/`: `plan.mdx`,
   optional `canvas.mdx`, optional `prototype.mdx`, and optional
   `.plan-state.json`. Set `kind: "recap"` and `localOnly: true` in
@@ -140,13 +140,18 @@ evidence:
   each meaningful item with a block or intentionally omit it because it is tiny,
   redundant, or not user-visible.
 - A `file-tree` of the changed files with each entry's `change` flag, so the
-  reviewer sees the footprint of the work at a glance.
+  reviewer sees the footprint of the work at a glance. Run
+  `npx @agent-native/core@latest recap diff-to-blocks --in recap.diff` and copy
+  each file's `change` flag straight in rather than eyeballing the diff headers.
 - The split `diff` of the KEY changed files, grouped under a `## Key changes`
   `rich-text` heading in a single horizontal `tabs` block (the default
   orientation, one file per tab), with a one-line `summary` and a few
   `annotations` on each — so the reviewer can drop from the high-altitude shape
   straight into the load-bearing code. Use horizontal file tabs, not a vertical
   side rail, so the selected file has enough width for the side-by-side diff.
+  Take each tab's `before`/`after` from the `recap diff-to-blocks` output (filter
+  with `--file <path>`) instead of reconstructing hunks by hand — a dropped
+  context line silently corrupts the rendered split diff.
 
 Skip the diff appendix only for a genuinely tiny change that reviews faster as
 plain diff (see "When To Use"); for any change worth recapping, the file-tree and
