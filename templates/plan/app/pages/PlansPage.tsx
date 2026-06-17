@@ -2985,7 +2985,7 @@ export function PlansPage() {
 
   useSetPageTitle(bundle?.plan.title || (isRecap ? "Recap" : "Plan"));
   useSetHeaderActions(
-    !sessionLoading && !session && !selectedId ? (
+    !sessionLoading && !session && !localMode && !selectedId ? (
       <Button
         type="button"
         variant="outline"
@@ -4624,6 +4624,7 @@ export function PlansPage() {
             <PlanLoadError
               error={planQuery.error}
               accessStatus={planAccessStatus}
+              localMode={localMode}
               onRetry={() => void planQuery.refetch()}
               onSignIn={() => openSignIn()}
               onGoogleSignIn={startGoogleSignIn}
@@ -6083,6 +6084,7 @@ function PlanLoadError({
   requestAccessPending,
   accessRequestSent,
   viewerEmail,
+  localMode,
 }: {
   error?: unknown;
   accessStatus?: PlanAccessStatusResponse | null;
@@ -6094,6 +6096,8 @@ function PlanLoadError({
   accessRequestSent?: boolean;
   /** The signed-in identity for THIS origin, or null when anonymous. */
   viewerEmail?: string | null;
+  /** Local single-user mode: never show sign-in/auth controls. */
+  localMode?: boolean;
 }) {
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailMode, setEmailMode] = useState<"sign-in" | "create">("sign-in");
@@ -6121,7 +6125,7 @@ function PlanLoadError({
     !planMissing &&
     status === 403 &&
     /not found|no access|forbidden/i.test(message);
-  const showAccessHelp = hasNoAccess || likelyPrivatePlan;
+  const showAccessHelp = (hasNoAccess || likelyPrivatePlan) && !localMode;
   const orgName = accessStatus?.orgName?.trim() || null;
   const orgAccessBody =
     orgName && accessStatus?.visibility === "org"

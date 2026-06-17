@@ -17,7 +17,7 @@ import {
 } from "@agent-native/core/client";
 import { OrgSwitcher } from "@agent-native/core/client/org";
 import { APP_TITLE } from "@/lib/app-config";
-import { usePlans } from "@/hooks/use-plans";
+import { usePlans, useLocalMode } from "@/hooks/use-plans";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -62,8 +62,9 @@ function PlansSidebarSection({ collapsed }: { collapsed: boolean }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { session, isLoading: sessionLoading } = useSession();
+  const localMode = useLocalMode().data?.localMode ?? false;
   const plansQuery = usePlans({
-    enabled: Boolean(session),
+    enabled: Boolean(session || localMode),
   });
   const selectedPlanId = (location.pathname.match(/^\/plans\/([^/]+)/) ??
     location.pathname.match(/^\/recaps\/([^/]+)/))?.[1];
@@ -81,7 +82,7 @@ function PlansSidebarSection({ collapsed }: { collapsed: boolean }) {
 
   const requestCreatePlan = () => {
     if (sessionLoading) return;
-    if (!session) {
+    if (!session && !localMode) {
       signInForPlanCreate();
       return;
     }
@@ -101,13 +102,15 @@ function PlansSidebarSection({ collapsed }: { collapsed: boolean }) {
               onClick={requestCreatePlan}
               disabled={sessionLoading}
               className="flex size-6 shrink-0 items-center justify-center rounded-md text-sidebar-foreground/65 transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50"
-              aria-label={session ? "New plan" : "Sign in to create a plan"}
+              aria-label={
+                session || localMode ? "New plan" : "Sign in to create a plan"
+              }
             >
               <IconPlus className="size-3.5" />
             </button>
           </TooltipTrigger>
           <TooltipContent>
-            {session ? "New plan" : "Sign in to create"}
+            {session || localMode ? "New plan" : "Sign in to create"}
           </TooltipContent>
         </Tooltip>
       </div>
@@ -118,7 +121,7 @@ function PlansSidebarSection({ collapsed }: { collapsed: boolean }) {
             <Skeleton key={item} className="h-8 rounded-md bg-sidebar-accent" />
           ))}
         </div>
-      ) : !session ? (
+      ) : !session && !localMode ? (
         <button
           type="button"
           onClick={signInForPlanCreate}
