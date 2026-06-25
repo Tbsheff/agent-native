@@ -457,7 +457,11 @@ function safeJsonParse<T>(value: unknown, fallback: T): T {
 
 function compactText(value: unknown, max = 260): string {
   const raw =
-    typeof value === "string" ? value : value === null || value === undefined ? "" : safeJson(value);
+    typeof value === "string"
+      ? value
+      : value === null || value === undefined
+        ? ""
+        : safeJson(value);
   const redacted = raw
     .replace(/sk-[A-Za-z0-9_-]{12,}/g, "sk-REDACTED")
     .replace(/anthropic-[A-Za-z0-9_-]{12,}/gi, "anthropic-REDACTED")
@@ -643,7 +647,13 @@ function formatMetadataComparison(
     const expectedKey = key.replace(/^actual/i, "expected");
     const actual = parseNumber(rawActual);
     const expected = parseNumber(metadata[expectedKey]);
-    if (actual === null || actual === undefined || expected === null || expected === undefined) continue;
+    if (
+      actual === null ||
+      actual === undefined ||
+      expected === null ||
+      expected === undefined
+    )
+      continue;
     const rawMetric = key.replace(/^actual/i, "");
     const normalizedMetric = rawMetric
       .replace(/[^a-z0-9]+/gi, "")
@@ -2454,7 +2464,9 @@ export async function createDreamReport(input: {
       result.candidates,
       memoryContext,
       {
-        personalMemoryAllowed: personalMemoryBlockReason === null || personalMemoryBlockReason === undefined,
+        personalMemoryAllowed:
+          personalMemoryBlockReason === null ||
+          personalMemoryBlockReason === undefined,
         personalMemoryBlockReason,
       },
     );
