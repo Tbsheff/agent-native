@@ -94,7 +94,7 @@ interface ThreadDebugResponse {
 }
 
 function formatDate(value: number | string | null | undefined): string {
-  if (value == null || value === "") return "n/a";
+  if (value === null || value === undefined || value === "") return "n/a";
   const numeric = Number(value);
   const date = Number.isFinite(numeric) ? new Date(numeric) : new Date(value);
   if (Number.isNaN(date.getTime())) return "n/a";
