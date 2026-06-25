@@ -134,13 +134,13 @@ function numberField(value: unknown): number {
 }
 
 function nullableNumberField(value: unknown): number | null {
-  if (value == null) return null;
+  if (value === null || value === undefined) return null;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
 
 function safeJsonParse<T>(value: unknown, fallback: T): T {
-  if (value == null || value === "") return fallback;
+  if (value === null || value === undefined || value === "") return fallback;
   try {
     return JSON.parse(String(value)) as T;
   } catch {
