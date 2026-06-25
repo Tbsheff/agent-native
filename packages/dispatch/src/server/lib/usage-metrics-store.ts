@@ -144,7 +144,7 @@ function nullableNumberField(
   key: string,
 ): number | null {
   const value = row[key];
-  if (value == null) return null;
+  if (value === null || value === undefined) return null;
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : null;
 }
