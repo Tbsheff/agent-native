@@ -77,7 +77,10 @@ function normalizeOpenAppArgs(args: OpenAppArgs): OpenAppArgs {
   }
 
   let normalizedChrome = args.chrome;
-  if ((normalizedChrome === null || normalizedChrome === undefined) && (chrome === "full" || chrome === "minimal")) {
+  if (
+    (normalizedChrome === null || normalizedChrome === undefined) &&
+    (chrome === "full" || chrome === "minimal")
+  ) {
     normalizedChrome = chrome;
     changed = true;
   }
@@ -90,8 +93,12 @@ function normalizeOpenAppArgs(args: OpenAppArgs): OpenAppArgs {
   return {
     ...args,
     params: Object.keys(params).length ? params : undefined,
-    ...(normalizedEmbed === null || normalizedEmbed === undefined ? {} : { embed: normalizedEmbed }),
-    ...(normalizedChrome === null || normalizedChrome === undefined ? {} : { chrome: normalizedChrome }),
+    ...(normalizedEmbed === null || normalizedEmbed === undefined
+      ? {}
+      : { embed: normalizedEmbed }),
+    ...(normalizedChrome === null || normalizedChrome === undefined
+      ? {}
+      : { chrome: normalizedChrome }),
   };
 }
 
